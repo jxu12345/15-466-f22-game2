@@ -83,7 +83,6 @@ PlayMode::~PlayMode() {
 }
 
 bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size) {
-
 	if (evt.type == SDL_KEYDOWN) {
 		if (evt.key.keysym.sym == SDLK_ESCAPE) {
 			SDL_SetRelativeMouseMode(SDL_FALSE);
@@ -105,6 +104,27 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			down.pressed = true;
 			return true;
 		}
+		else if (evt.key.keysym.sym == SDLK_UP) {
+			arrowUp.downs += 1;
+			arrowUp.pressed = true;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_DOWN) {
+			arrowDown.downs += 1;
+			arrowDown.pressed = true;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_LEFT) {
+			arrowLeft.downs += 1;
+			arrowLeft.pressed = true;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_RIGHT) {
+			arrowRight.downs += 1;
+			arrowRight.pressed = true;
+			return true;
+		}
+
 	} else if (evt.type == SDL_KEYUP) {
 		if (evt.key.keysym.sym == SDLK_a) {
 			left.pressed = false;
@@ -119,6 +139,23 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			down.pressed = false;
 			return true;
 		}
+		else if (evt.key.keysym.sym == SDLK_UP) {
+			arrowUp.pressed = false;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_DOWN) {
+			arrowDown.pressed = false;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_LEFT) {
+			arrowLeft.pressed = false;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_RIGHT) {
+			arrowRight.pressed = false;
+			return true;
+		}
+
 	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
 		if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
 			SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -148,19 +185,38 @@ void PlayMode::update(float elapsed) {
 	wobble += elapsed / 10.0f;
 	wobble -= std::floor(wobble);
 
-	hip->rotation = hip_base_rotation * glm::angleAxis(
-		glm::radians(5.0f * std::sin(wobble * 2.0f * float(M_PI))),
-		glm::vec3(0.0f, 1.0f, 0.0f)
-	);
-	upper_leg->rotation = upper_leg_base_rotation * glm::angleAxis(
-		glm::radians(7.0f * std::sin(wobble * 2.0f * 2.0f * float(M_PI))),
-		glm::vec3(0.0f, 0.0f, 1.0f)
-	);
-	lower_leg->rotation = lower_leg_base_rotation * glm::angleAxis(
-		glm::radians(10.0f * std::sin(wobble * 3.0f * 2.0f * float(M_PI))),
-		glm::vec3(0.0f, 0.0f, 1.0f)
-	);
+	
 
+	if (arrowUp.pressed) {
+
+		// hip->rotation = hip_base_rotation * glm::angleAxis(
+		// 	glm::radians(5.0f * std::sin(wobble * 2.0f * float(M_PI))),
+		// 	glm::vec3(0.0f, 1.0f, 0.0f)
+		// );
+		// upper_leg->rotation = upper_leg_base_rotation * glm::angleAxis(
+		// 	glm::radians(7.0f * std::sin(wobble * 2.0f * 2.0f * float(M_PI))),
+		// 	glm::vec3(0.0f, 0.0f, 1.0f)
+		// );
+		// lower_leg->rotation = lower_leg_base_rotation * glm::angleAxis(
+		// 	glm::radians(10.0f * std::sin(wobble * 3.0f * 2.0f * float(M_PI))),
+		// 	glm::vec3(0.0f, 0.0f, 1.0f)
+		// );
+		mvnt += speed * elapsed;
+
+		hip->rotation = hip_base_rotation * glm::angleAxis(
+			glm::radians(mvnt),
+			glm::vec3(0.0f, 1.0f, 0.0f)
+		);
+	}
+	else if (arrowDown.pressed) {
+		mvnt -= speed * elapsed;
+		hip->rotation = hip_base_rotation * glm::angleAxis(
+			glm::radians(mvnt),
+			glm::vec3(0.0f, 1.0f, 0.0f)
+		);
+	}
+
+	std::cout << std::to_string(mvnt) << std::endl;
 	//move camera:
 	{
 
@@ -188,6 +244,11 @@ void PlayMode::update(float elapsed) {
 	right.downs = 0;
 	up.downs = 0;
 	down.downs = 0;
+
+	arrowUp.downs = 0;
+	arrowDown.downs = 0;
+	arrowLeft.downs = 0;
+	arrowRight.downs = 0;
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {

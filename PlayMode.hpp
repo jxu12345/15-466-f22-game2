@@ -22,7 +22,7 @@ struct PlayMode : Mode {
 	struct Button {
 		uint8_t downs = 0;
 		uint8_t pressed = 0;
-	} left, right, down, up;
+	} left, right, down, up, arrowLeft, arrowRight, arrowUp, arrowDown;
 
 	//local copy of the game scene (so code can change it during gameplay):
 	Scene scene;
@@ -34,6 +34,10 @@ struct PlayMode : Mode {
 	glm::quat hip_base_rotation;
 	glm::quat upper_leg_base_rotation;
 	glm::quat lower_leg_base_rotation;
+
+	// manipulation speed
+	float speed = 2.0f;
+	float mvnt = 0.0f;
 	float wobble = 0.0f;
 	
 	//camera:
