@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <deque>
+#include <iostream>
 
 struct PlayMode : Mode {
 	PlayMode();
@@ -22,7 +23,8 @@ struct PlayMode : Mode {
 	struct Button {
 		uint8_t downs = 0;
 		uint8_t pressed = 0;
-	} left, right, down, up, arrowLeft, arrowRight, arrowUp, arrowDown;
+		uint8_t released = 0;
+	} left, right, down, up, arrowLeft, arrowRight, arrowUp, arrowDown, space;
 
 	//local copy of the game scene (so code can change it during gameplay):
 	Scene scene;
@@ -39,6 +41,32 @@ struct PlayMode : Mode {
 	float speed = 2.0f;
 	float mvnt = 0.0f;
 	float wobble = 0.0f;
+
+	float mvnt_hip = 0.0f;
+	float mvnt_upper_leg = 0.0f;
+	float mvnt_lower_leg = 0.0f;
+	float mvnt_gripper = 0.0f;
+
+	float *mvnt_curr_joint = &mvnt_upper_leg;
+	
+	enum Joint {UPPER_LEG, LOWER_LEG, GRIPPER};
+	Joint curr_joint = UPPER_LEG;
+	Joint increment_joint (Joint j) {
+		switch (j) {
+			case UPPER_LEG:
+				mvnt_curr_joint = &mvnt_lower_leg;
+				return LOWER_LEG;
+			case LOWER_LEG:
+				mvnt_curr_joint = &mvnt_gripper;
+				return GRIPPER;
+			case GRIPPER:
+				mvnt_curr_joint = &mvnt_upper_leg;
+				return UPPER_LEG;
+			default:
+				std::cout << "ERROR: invalid joint" << std::endl;
+				return UPPER_LEG;
+		}
+	}
 	
 	//camera:
 	Scene::Camera *camera = nullptr;

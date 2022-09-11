@@ -124,6 +124,11 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			arrowRight.pressed = true;
 			return true;
 		}
+		else if (evt.key.keysym.sym == SDLK_SPACE) {
+			space.downs += 1;
+			space.pressed = true;
+			return true;
+		}
 
 	} else if (evt.type == SDL_KEYUP) {
 		if (evt.key.keysym.sym == SDLK_a) {
@@ -153,6 +158,11 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		}
 		else if (evt.key.keysym.sym == SDLK_RIGHT) {
 			arrowRight.pressed = false;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_SPACE) {
+			space.pressed = false;
+			space.released = true;
 			return true;
 		}
 
@@ -185,9 +195,7 @@ void PlayMode::update(float elapsed) {
 	wobble += elapsed / 10.0f;
 	wobble -= std::floor(wobble);
 
-	
-
-	if (arrowUp.pressed) {
+	if (arrowLeft.pressed) {
 
 		// hip->rotation = hip_base_rotation * glm::angleAxis(
 		// 	glm::radians(5.0f * std::sin(wobble * 2.0f * float(M_PI))),
@@ -201,22 +209,39 @@ void PlayMode::update(float elapsed) {
 		// 	glm::radians(10.0f * std::sin(wobble * 3.0f * 2.0f * float(M_PI))),
 		// 	glm::vec3(0.0f, 0.0f, 1.0f)
 		// );
-		mvnt += speed * elapsed;
-
-		hip->rotation = hip_base_rotation * glm::angleAxis(
-			glm::radians(mvnt),
-			glm::vec3(0.0f, 1.0f, 0.0f)
-		);
+		mvnt_hip += speed * elapsed;
 	}
-	else if (arrowDown.pressed) {
-		mvnt -= speed * elapsed;
-		hip->rotation = hip_base_rotation * glm::angleAxis(
-			glm::radians(mvnt),
-			glm::vec3(0.0f, 1.0f, 0.0f)
-		);
+	else if (arrowRight.pressed) {
+		mvnt_hip -= speed * elapsed;
 	}
 
-	std::cout << std::to_string(mvnt) << std::endl;
+	if (arrowUp.pressed) {
+		*mvnt_curr_joint += speed * elapsed;
+	}
+	if (arrowDown.pressed) {
+		*mvnt_curr_joint -= speed * elapsed;
+	}
+	if (space.released) {
+		curr_joint = increment_joint(curr_joint);
+		space.released = false;
+	}
+
+
+	hip->rotation = hip_base_rotation * glm::angleAxis(
+			glm::radians(mvnt_hip),
+			glm::vec3(0.0f, 1.0f, 0.0f)
+		);
+	upper_leg->rotation = upper_leg_base_rotation * glm::angleAxis(
+			glm::radians(mvnt_upper_leg),
+			glm::vec3(0.0f, 0.0f, 1.0f)
+		);
+	lower_leg->rotation = lower_leg_base_rotation * glm::angleAxis(
+			glm::radians(mvnt_lower_leg),
+			glm::vec3(0.0f, 0.0f, 1.0f)
+		);
+
+	std::cout << "Upper Leg: " << std::to_string(mvnt_upper_leg) << std::endl;
+	std::cout << "Curr Joint:" << std::to_string(curr_joint) << std::endl; 
 	//move camera:
 	{
 
@@ -249,6 +274,7 @@ void PlayMode::update(float elapsed) {
 	arrowDown.downs = 0;
 	arrowLeft.downs = 0;
 	arrowRight.downs = 0;
+	space.downs = 0;
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
