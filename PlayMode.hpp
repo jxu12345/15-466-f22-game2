@@ -7,6 +7,8 @@
 #include <vector>
 #include <deque>
 #include <iostream>
+#include <chrono>
+#include <random>
 
 struct PlayMode : Mode {
 	PlayMode();
@@ -33,12 +35,17 @@ struct PlayMode : Mode {
 	Scene::Transform *hip = nullptr;
 	Scene::Transform *upper_leg = nullptr;
 	Scene::Transform *lower_leg = nullptr;
+	// Scene::Transform *gripper = nullptr;
+	Scene::Transform *cube = nullptr;
+
 	glm::quat hip_base_rotation;
 	glm::quat upper_leg_base_rotation;
 	glm::quat lower_leg_base_rotation;
+	// glm::quat gripper_base_rotation;
+	glm::vec3 cube_position;
 
 	// manipulation speed
-	float speed = 2.0f;
+	float speed = 20.0f;
 	float mvnt = 0.0f;
 	float wobble = 0.0f;
 
@@ -67,7 +74,19 @@ struct PlayMode : Mode {
 				return UPPER_LEG;
 		}
 	}
+	// helper function to place cube at different location
+	void place_cube() {
+		std::mt19937 mt{ std::random_device{}() };
+		bool negx = mt() % 2;
+		bool negy = mt() % 2;
 	
+		float x = (mt() % 24) / 4.0f - (negx * 8.0f) + (!negx * 2.0f);
+		float y = (mt() % 24) / 4.0f - (negy * 8.0f) + (!negy * 2.0f);
+		float z = 0.5;
+
+		cube->position = glm::vec3(x, y, z);
+	}
+		
 	//camera:
 	Scene::Camera *camera = nullptr;
 

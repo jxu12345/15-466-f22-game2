@@ -10,7 +10,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
-#include <random>
+
 
 GLuint hexapod_meshes_for_lit_color_texture_program = 0;
 Load< MeshBuffer > hexapod_meshes(LoadTagDefault, []() -> MeshBuffer const * {
@@ -59,20 +59,31 @@ Load<Scene> arm_scene (LoadTagDefault, []() -> Scene const * {
 	});
 });
 
+
 PlayMode::PlayMode() : scene(*arm_scene) {
 	//get pointers to leg for convenience:
 	for (auto &transform : scene.transforms) {
+		std::cout << transform.name << std::endl;
 		if (transform.name == "Hip") hip = &transform;
 		else if (transform.name == "UpperLeg") upper_leg = &transform;
 		else if (transform.name == "LowerLeg") lower_leg = &transform;
+		// else if (transform.name == "Gripper") gripper = &transform;
+		else if (transform.name == "Cube") {
+			cube = &transform;
+			// std::cout << std::to_string(cube->position.x) << " " << std::to_string(cube->position.y) << " " << std::to_string(cube->position.z) << std::endl;
+		}
 	}
 	if (hip == nullptr) throw std::runtime_error("Hip not found.");
 	if (upper_leg == nullptr) throw std::runtime_error("Upper leg not found.");
 	if (lower_leg == nullptr) throw std::runtime_error("Lower leg not found.");
+	// if (gripper == nullptr) throw std::runtime_error("Gripper not found.");
+	// if (cube == nullptr) throw std::runtime_error("Goal cube not found.");
 
 	hip_base_rotation = hip->rotation;
 	upper_leg_base_rotation = upper_leg->rotation;
 	lower_leg_base_rotation = lower_leg->rotation;
+	// gripper_base_rotation = gripper->rotation;
+	// cube_position = cube->position;
 
 	//get pointer to camera for convenience:
 	if (scene.cameras.size() != 1) throw std::runtime_error("Expecting scene to have exactly one camera, but it has " + std::to_string(scene.cameras.size()));
@@ -196,19 +207,6 @@ void PlayMode::update(float elapsed) {
 	wobble -= std::floor(wobble);
 
 	if (arrowLeft.pressed) {
-
-		// hip->rotation = hip_base_rotation * glm::angleAxis(
-		// 	glm::radians(5.0f * std::sin(wobble * 2.0f * float(M_PI))),
-		// 	glm::vec3(0.0f, 1.0f, 0.0f)
-		// );
-		// upper_leg->rotation = upper_leg_base_rotation * glm::angleAxis(
-		// 	glm::radians(7.0f * std::sin(wobble * 2.0f * 2.0f * float(M_PI))),
-		// 	glm::vec3(0.0f, 0.0f, 1.0f)
-		// );
-		// lower_leg->rotation = lower_leg_base_rotation * glm::angleAxis(
-		// 	glm::radians(10.0f * std::sin(wobble * 3.0f * 2.0f * float(M_PI))),
-		// 	glm::vec3(0.0f, 0.0f, 1.0f)
-		// );
 		mvnt_hip += speed * elapsed;
 	}
 	else if (arrowRight.pressed) {
@@ -223,6 +221,7 @@ void PlayMode::update(float elapsed) {
 	}
 	if (space.released) {
 		curr_joint = increment_joint(curr_joint);
+		place_cube();
 		space.released = false;
 	}
 
@@ -240,8 +239,6 @@ void PlayMode::update(float elapsed) {
 			glm::vec3(0.0f, 0.0f, 1.0f)
 		);
 
-	std::cout << "Upper Leg: " << std::to_string(mvnt_upper_leg) << std::endl;
-	std::cout << "Curr Joint:" << std::to_string(curr_joint) << std::endl; 
 	//move camera:
 	{
 
