@@ -10,32 +10,6 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
-
-
-GLuint hexapod_meshes_for_lit_color_texture_program = 0;
-Load< MeshBuffer > hexapod_meshes(LoadTagDefault, []() -> MeshBuffer const * {
-	MeshBuffer const *ret = new MeshBuffer(data_path("hexapod.pnct"));
-	hexapod_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
-	return ret;
-});
-
-Load< Scene > hexapod_scene(LoadTagDefault, []() -> Scene const * {
-	return new Scene(data_path("hexapod.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
-		Mesh const &mesh = hexapod_meshes->lookup(mesh_name);
-
-		scene.drawables.emplace_back(transform);
-		Scene::Drawable &drawable = scene.drawables.back();
-
-		drawable.pipeline = lit_color_texture_program_pipeline;
-
-		drawable.pipeline.vao = hexapod_meshes_for_lit_color_texture_program;
-		drawable.pipeline.type = mesh.type;
-		drawable.pipeline.start = mesh.start;
-		drawable.pipeline.count = mesh.count;
-
-	});
-});
-
 GLuint arm_meshes_for_lit_color_texture_program = 0;
 Load< MeshBuffer > arm_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	MeshBuffer const *ret = new MeshBuffer(data_path("arm.pnct"));
@@ -59,6 +33,20 @@ Load<Scene> arm_scene (LoadTagDefault, []() -> Scene const * {
 	});
 });
 
+// detect if reached goal cube
+bool reached_goal(glm::vec3 const &gripper_head_pos, glm::vec3 const &cube_pos) {
+	std::cout << "gripper_head_pos: " << std::to_string(gripper_head_pos.x) << ", " << std::to_string(gripper_head_pos.y) << ", " << std::to_string(gripper_head_pos.z) << std::endl;
+	std::cout << "cube_pos: " << std::to_string(cube_pos.x) << ", " << std::to_string(cube_pos.y) << ", " << std::to_string(cube_pos.z) << std::endl;
+	
+	return (
+		   gripper_head_pos.x >= cube_pos.x - 0.15f
+		&& gripper_head_pos.x <= cube_pos.x + 0.15f
+		&& gripper_head_pos.y >= cube_pos.y - 0.15f
+		&& gripper_head_pos.y <= cube_pos.y + 0.15f
+		&& gripper_head_pos.z >= cube_pos.z - 0.15f
+		&& gripper_head_pos.z <= cube_pos.z + 0.15f
+	);	
+}
 
 PlayMode::PlayMode() : scene(*arm_scene) {
 	//get pointers to leg for convenience:
@@ -67,23 +55,30 @@ PlayMode::PlayMode() : scene(*arm_scene) {
 		if (transform.name == "Hip") hip = &transform;
 		else if (transform.name == "UpperLeg") upper_leg = &transform;
 		else if (transform.name == "LowerLeg") lower_leg = &transform;
-		// else if (transform.name == "Gripper") gripper = &transform;
-		else if (transform.name == "Cube") {
-			cube = &transform;
-			// std::cout << std::to_string(cube->position.x) << " " << std::to_string(cube->position.y) << " " << std::to_string(cube->position.z) << std::endl;
-		}
+		else if (transform.name == "Gripper") gripper = &transform;
+		else if (transform.name == "GripperHead") gripper_head = &transform;
+		else if (transform.name == "Cube") cube = &transform;
+
+
 	}
+	if (gripper_head == nullptr) {
+		std::cout << "gripper_head is null" << std::endl;
+	}
+	else {
+		std::cout << std::to_string(gripper_head->position.x) << " " << std::to_string(gripper_head->position.y) << " " << std::to_string(gripper_head->position.z) << std::endl;
+	}
+
 	if (hip == nullptr) throw std::runtime_error("Hip not found.");
 	if (upper_leg == nullptr) throw std::runtime_error("Upper leg not found.");
 	if (lower_leg == nullptr) throw std::runtime_error("Lower leg not found.");
-	// if (gripper == nullptr) throw std::runtime_error("Gripper not found.");
-	// if (cube == nullptr) throw std::runtime_error("Goal cube not found.");
+	if (gripper == nullptr) throw std::runtime_error("Gripper not found.");
+	if (gripper_head == nullptr) throw std::runtime_error("Gripper head not found.");
+	if (cube == nullptr) throw std::runtime_error("Goal cube not found.");
 
 	hip_base_rotation = hip->rotation;
 	upper_leg_base_rotation = upper_leg->rotation;
 	lower_leg_base_rotation = lower_leg->rotation;
-	// gripper_base_rotation = gripper->rotation;
-	// cube_position = cube->position;
+	gripper_base_rotation = gripper->rotation;
 
 	//get pointer to camera for convenience:
 	if (scene.cameras.size() != 1) throw std::runtime_error("Expecting scene to have exactly one camera, but it has " + std::to_string(scene.cameras.size()));
@@ -202,10 +197,6 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 void PlayMode::update(float elapsed) {
 
-	//slowly rotates through [0,1):
-	wobble += elapsed / 10.0f;
-	wobble -= std::floor(wobble);
-
 	if (arrowLeft.pressed) {
 		mvnt_hip += speed * elapsed;
 	}
@@ -221,23 +212,35 @@ void PlayMode::update(float elapsed) {
 	}
 	if (space.released) {
 		curr_joint = increment_joint(curr_joint);
-		place_cube();
 		space.released = false;
 	}
 
-
 	hip->rotation = hip_base_rotation * glm::angleAxis(
 			glm::radians(mvnt_hip),
-			glm::vec3(0.0f, 1.0f, 0.0f)
+			glm::vec3(0.0f, 0.0f, 1.0f)
 		);
 	upper_leg->rotation = upper_leg_base_rotation * glm::angleAxis(
 			glm::radians(mvnt_upper_leg),
-			glm::vec3(0.0f, 0.0f, 1.0f)
+			glm::vec3(-1.0f, 0.0f, 0.0f)
 		);
 	lower_leg->rotation = lower_leg_base_rotation * glm::angleAxis(
 			glm::radians(mvnt_lower_leg),
-			glm::vec3(0.0f, 0.0f, 1.0f)
+			glm::vec3(-1.0f, 0.0f, 0.0f)
 		);
+	gripper->rotation = gripper_base_rotation * glm::angleAxis(
+			glm::radians(mvnt_gripper),
+			glm::vec3(-1.0f, 0.0f, 0.0f)
+		);
+
+	glm::vec4 gripper_head_pos_homo = glm::vec4(gripper_head->position, 1.0f);
+	glm::uvec4 cube_pos_homo = glm::vec4(cube->position, 1.0f);
+
+	glm::vec3 gripper_head_pos_global = gripper_head->make_local_to_world() * gripper_head_pos_homo;
+	glm::vec3 cube_pos_global = cube->make_local_to_world() * cube_pos_homo;
+	if (reached_goal(gripper_head_pos_global, cube->position)) {
+		std::cout << "Reached goal!" << std::endl;
+		place_cube();
+	}
 
 	//move camera:
 	{
