@@ -35,8 +35,8 @@ Load<Scene> arm_scene (LoadTagDefault, []() -> Scene const * {
 
 // detect if reached goal cube
 bool reached_goal(glm::vec3 const &gripper_head_pos, glm::vec3 const &cube_pos) {
-	std::cout << "gripper_head_pos: " << std::to_string(gripper_head_pos.x) << ", " << std::to_string(gripper_head_pos.y) << ", " << std::to_string(gripper_head_pos.z) << std::endl;
-	std::cout << "cube_pos: " << std::to_string(cube_pos.x) << ", " << std::to_string(cube_pos.y) << ", " << std::to_string(cube_pos.z) << std::endl;
+	// std::cout << "gripper_head_pos: " << std::to_string(gripper_head_pos.x) << ", " << std::to_string(gripper_head_pos.y) << ", " << std::to_string(gripper_head_pos.z) << std::endl;
+	// std::cout << "cube_pos: " << std::to_string(cube_pos.x) << ", " << std::to_string(cube_pos.y) << ", " << std::to_string(cube_pos.z) << std::endl;
 	
 	return (
 		   gripper_head_pos.x >= cube_pos.x - 0.15f
@@ -198,10 +198,10 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 void PlayMode::update(float elapsed) {
 
 	if (arrowLeft.pressed) {
-		mvnt_hip += speed * elapsed;
+		mvnt_hip += 2 * speed * elapsed;
 	}
 	else if (arrowRight.pressed) {
-		mvnt_hip -= speed * elapsed;
+		mvnt_hip -= 2 * speed * elapsed;
 	}
 
 	if (arrowUp.pressed) {
@@ -311,12 +311,12 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		));
 
 		constexpr float H = 0.09f;
-		lines.draw_text("Mouse motion rotates camera; WASD moves; escape ungrabs mouse",
+		lines.draw_text("Mouse motion rotates camera; WASD moves; escape ungrabs mouse; arrow keys to manipulate robot arm; space to switch joints",
 			glm::vec3(-aspect + 0.1f * H, -1.0 + 0.1f * H, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
 		float ofs = 2.0f / drawable_size.y;
-		lines.draw_text("Mouse motion rotates camera; WASD moves; escape ungrabs mouse",
+		lines.draw_text("Mouse motion rotates camera; WASD moves; escape ungrabs mouse; arrow keys to manipulate robot arm; space to switch joints",
 			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + + 0.1f * H + ofs, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));

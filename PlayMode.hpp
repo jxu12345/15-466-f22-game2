@@ -48,7 +48,7 @@ struct PlayMode : Mode {
 	glm::vec3 cube_position;
 
 	// manipulation speed
-	float speed = 20.0f;
+	float speed = 30.0f;
 
 	float mvnt_hip = 0.0f;
 	float mvnt_upper_leg = 0.0f;
